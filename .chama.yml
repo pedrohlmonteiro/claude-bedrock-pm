@@ -1,0 +1,21 @@
+project:
+  name: claude-bedrock-pm
+  repo: pedrohlmonteiro/claude-bedrock-pm
+  language: pt-BR
+  description: >
+    Fork do framework claude-bedrock adaptado para workflows de gestão de produto (GPM/PM).
+    Estende entity types, templates e skills para cobrir 1:1s, daily dumps, competências,
+    e integração com Granola.
+
+github:
+  owner: pedrohlmonteiro
+  project_number: 5
+  board_statuses:
+    todo: "Todo"
+    in_progress: "In Progress"
+    done: "Done"
+
+knowledge_paths:
+  - entities/
+  - skills/setup/
+  - templates/
