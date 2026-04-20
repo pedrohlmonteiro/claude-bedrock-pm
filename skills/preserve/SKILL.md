@@ -670,6 +670,83 @@ For each entity marked as `update`:
    - **"Recent Activity" section** (actors): REPLACE content (temporal data)
 4. **Wikilinks:** add new ones, NEVER remove existing ones
 
+### 4.2.1 Management routing rules (Person with management_role)
+
+When updating a **person** entity, check if the frontmatter contains a non-empty `management_role` field.
+**If `management_role` is absent or empty: skip this section entirely** — standard update rules apply.
+
+When `management_role` IS present, the input may contain items tagged with a routing target.
+Apply these rules based on the item's `route_to` or inferred type:
+
+#### Route: `proximo_1_1` (Próximo 1:1)
+
+Insert new checklist items **BEFORE** the `%%vazio%%` placeholder line:
+
+```
+Find the line: "- [ ] %%vazio — novos itens serão adicionados aqui%%"
+Insert BEFORE that line: "- [ ] <item_description> *(<date>)*"
+```
+
+- Format: `- [ ] <description> *(YYYY-MM-DD)*`
+- NEVER remove the `%%vazio%%` placeholder
+- NEVER move existing items
+
+#### Route: `log` (Log)
+
+Insert new entries at the **TOP** of the Log section, immediately after the `## Log` header and its comment line:
+
+```
+Find: "%%Registro corrido de observações, feedbacks e contexto relevante. Mais recente no topo.%%"
+Insert AFTER that line:
+  "\n### YYYY-MM-DD\n- <observation>"
+```
+
+- Format: `### YYYY-MM-DD` header followed by `- <observation>` lines
+- If a `### YYYY-MM-DD` header for today already exists at the top: append the observation to that block instead of creating a new header
+- Most recent entries always on top
+
+#### Route: `tema` (Temas em Acompanhamento)
+
+Append to the `## Temas em Acompanhamento` section:
+
+```
+- <theme description>
+```
+
+#### Route: `pdi` (Desenvolvimento / PDI)
+
+Append to the `## Desenvolvimento / PDI` section.
+
+#### Route: `competencia` (Competency scores)
+
+Update frontmatter fields directly. Example input: `{field: "delivery", value: 4}` → set `delivery: 4` in frontmatter.
+- Only update the specific fields provided
+- NEVER zero out fields not mentioned in the input
+
+### 4.2.2 Management routing rules (Team with strategic sections)
+
+When updating a **team** entity, check if the body contains a `## Temas Estratégicos` section.
+**If absent: skip this section** — standard update rules apply.
+
+#### Route: `decisao` (Decisões Importantes)
+
+Append a new row to the `## Decisões Importantes` table:
+
+```
+| YYYY-MM-DD | <decision> | <context> |
+```
+
+- Append after the last existing row (before any empty lines or next section)
+- NEVER modify existing rows
+
+#### Route: `tema_estrategico` (Temas Estratégicos)
+
+Append to the `## Temas Estratégicos` section:
+
+```
+- **<theme name>:** <description> *(YYYY-MM-DD)*
+```
+
 ### 4.3 Populate `sources` field (when applicable)
 
 If the input contains `source_url` and `source_type` (provided by `/bedrock:teach` or another caller):
