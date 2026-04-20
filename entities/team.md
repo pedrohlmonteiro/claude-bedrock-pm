@@ -57,6 +57,17 @@ Teams have a domain scope (e.g., "card transaction lifecycle"), listed members, 
 
 A team is complete when: it has a formal name, a defined scope, at least 1 listed member, and at least 1 actor under ownership. If only the squad name is mentioned without members or actors, the content should go to `fleeting/` until it is consolidated.
 
+## Management sections (body — optional)
+
+For product-management vaults, team notes include additional sections for tracking strategic themes and decisions:
+
+| Section | Purpose | Write rule |
+|---|---|---|
+| **Temas Estratégicos** | Active strategic themes being tracked by the team | Append-only. Format: `- **Theme name:** description *(YYYY-MM-DD)*` |
+| **Decisões Importantes** | Table of key decisions with date and context | Append new rows. Format: `\| YYYY-MM-DD \| Decision \| Context \|` |
+
+These sections are optional and do not affect team notes in non-management vaults.
+
 ## Examples
 
 ### This IS a team

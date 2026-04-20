@@ -53,6 +53,47 @@ Persons are connected to teams and actors via wikilinks. The vault tracks people
 | `slack` | string | Slack handle (e.g., `@alice.smith`) |
 | `jira` | string | Jira username |
 
+## Management fields (frontmatter — optional)
+
+These fields activate management sections in the person note. Only populate when the person is managed (direct report, indirect report, etc.) in a product-management vault.
+
+| Field | Type | Description |
+|---|---|---|
+| `management_role` | string | `direct-report`, `indirect-report`, `peer`, `leader`, `external` — leave empty for non-managed persons |
+| `manager` | wikilink | `"[[manager-slug]]"` — the person's direct manager |
+
+### Competency fields (Reforge Product Competency Model)
+
+Only populate when `management_role` is set. Scale 0-5. Each competency has a leader assessment and self-assessment (`_self` suffix).
+
+| Field | Field (self) | Dimension |
+|---|---|---|
+| `product_sense` | `product_sense_self` | Product Strategy |
+| `analytical` | `analytical_self` | Product Strategy |
+| `execution` | `execution_self` | Product Strategy |
+| `strategic_thinking` | `strategic_thinking_self` | Product Strategy |
+| `fluency` | `fluency_self` | Product Execution |
+| `discovery` | `discovery_self` | Product Execution |
+| `growth` | `growth_self` | Product Execution |
+| `go_to_market` | `go_to_market_self` | Product Execution |
+| `quality` | `quality_self` | Technical |
+| `delivery` | `delivery_self` | Technical |
+| `user_insight` | `user_insight_self` | Research |
+| `data_intuition` | `data_intuition_self` | Research |
+
+## Management sections (body — conditional)
+
+When `management_role` is set, the person note includes additional sections after "Active Topics":
+
+| Section | Purpose | Write rule |
+|---|---|---|
+| **Próximo 1:1** | Checklist of items for the next 1:1 meeting | Insert new items BEFORE `%%vazio%%` placeholder |
+| **Temas em Acompanhamento** | Recurring themes that need follow-up | Append-only |
+| **Desenvolvimento / PDI** | Personal development plan | Append-only |
+| **Log** | Chronological observations (newest on top, `### YYYY-MM-DD` headers) | Insert new entries at the TOP of the section |
+
+**Important:** The `%%vazio%%` placeholder in "Próximo 1:1" must never be removed — it marks the insertion point for new items. `/bedrock:compress` must preserve it.
+
 ## Filename convention
 
 A person's filename is derived from the **corporate email prefix**, normalized:

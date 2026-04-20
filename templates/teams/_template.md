@@ -45,6 +45,28 @@ tags: [type/team]  # + domain/{payments,finance,notifications,checkout,orders,in
 - Jira Board: [link]()
 - Confluence Space: [link]()
 
+<!-- ============================================================
+     MANAGEMENT SECTIONS — Optional. Useful for product-management vaults
+     where teams track strategic themes and decisions over time.
+     ============================================================ -->
+
+---
+
+## Temas Estratégicos
+
+<!-- Strategic themes actively being tracked by the team. Append-only. -->
+
+---
+
+## Decisões Importantes
+
+| Data | Decisão | Contexto |
+|---|---|---|
+
+<!-- ============================================================
+     END MANAGEMENT SECTIONS
+     ============================================================ -->
+
 ---
 
 ## Expected Bidirectional Links

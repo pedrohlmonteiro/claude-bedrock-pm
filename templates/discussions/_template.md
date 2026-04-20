@@ -5,7 +5,7 @@ aliases: []  # ["Short Title"] — min 1 alias if title is long
 date: YYYY-MM-DD
 summary: ""
 conclusions: []
-action_items: []
+action_items: []  # structured: [{description: "", owner: "[[person-slug]]", status: "todo|done", deadline: "YYYY-MM-DD", routed_to: "[[person-slug]]"}]
 related_topics: ["[[YYYY-MM-type-slug]]"]
 related_actors: ["[[repo-name]]"]
 related_people: ["[[first-last]]"]

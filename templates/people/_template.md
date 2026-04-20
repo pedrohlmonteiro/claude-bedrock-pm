@@ -9,6 +9,36 @@ email: ""  # full corporate email (e.g.: alice.smith@company.com)
 github: ""  # optional — GitHub login, when applicable
 slack: ""  # optional — Slack handle (e.g.: @alice.smith)
 jira: ""
+# --- Management fields (optional — only when management_role is set) ---
+management_role: ""  # direct-report | indirect-report | peer | leader | external — leave empty for non-managed persons
+manager: ""  # "[[manager-slug]]" — wikilink to this person's manager
+# --- Competencies: Reforge Product Competency Model (optional, scale 0-5) ---
+# Only populate when management_role is set. Leader assessment + self-assessment.
+product_sense: 0
+product_sense_self: 0
+analytical: 0
+analytical_self: 0
+execution: 0
+execution_self: 0
+strategic_thinking: 0
+strategic_thinking_self: 0
+fluency: 0
+fluency_self: 0
+discovery: 0
+discovery_self: 0
+growth: 0
+growth_self: 0
+go_to_market: 0
+go_to_market_self: 0
+quality: 0
+quality_self: 0
+delivery: 0
+delivery_self: 0
+user_insight: 0
+user_insight_self: 0
+data_intuition: 0
+data_intuition_self: 0
+# --- End management fields ---
 sources: []  # [{url: "https://...", type: "confluence|gdoc|github-repo|csv|markdown|manual", synced_at: YYYY-MM-DD}]
 updated_at: YYYY-MM-DD
 updated_by: ""
@@ -39,6 +69,40 @@ Member of [[squad-name]].
 
 - [[YYYY-MM-type-slug]] — brief description
 
+<!-- ============================================================
+     MANAGEMENT SECTIONS — Include ONLY when management_role is set.
+     Remove this entire block for non-managed persons.
+     ============================================================ -->
+
+---
+
+## Próximo 1:1
+
+> [!todo] Pauta acumulada para o próximo 1:1
+> Itens adicionados automaticamente via daily dump, reuniões ou notas rápidas.
+
+- [ ] %%vazio — novos itens serão adicionados aqui%%
+
+---
+
+## Temas em Acompanhamento
+
+%%Temas ativos que precisam de follow-up recorrente%%
+
+---
+
+## Desenvolvimento / PDI
+
+---
+
+## Log
+
+%%Registro corrido de observações, feedbacks e contexto relevante. Mais recente no topo.%%
+
+<!-- ============================================================
+     END MANAGEMENT SECTIONS
+     ============================================================ -->
+
 ---
 
 ## Expected Bidirectional Links
@@ -50,5 +114,6 @@ Member of [[squad-name]].
 | Person → Team | `[[squad-name]]` | `team` in frontmatter |
 | Person → Actor | `[[repo-name]]` | "Focal Points" section |
 | Person → Topic | `[[YYYY-MM-type-slug]]` | "Active Topics" section |
+| Person → Manager | `[[manager-slug]]` | `manager` in frontmatter (management only) |
 | Team → Person | `[[first-last]]` | `members` in Team frontmatter |
 | Topic → Person | `[[first-last]]` | `people` in Topic frontmatter |
