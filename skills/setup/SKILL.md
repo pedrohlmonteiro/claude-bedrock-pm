@@ -329,7 +329,7 @@ presets:
   product:
     label: "Product management"
     domains: [product, design, research, analytics, growth]
-    description: "Product management knowledge base for tracking features, user research, projects, and product analytics"
+    description: "Product management knowledge base for tracking teams, people, 1:1s, projects, meetings, and product decisions — with management workflows for daily dumps, competency tracking, and meeting ingestion"
     team_name: "product-team"
     team_aliases: ["Product", "Product Team"]
     team_scope: "Product strategy, discovery, and delivery"
@@ -341,12 +341,16 @@ presets:
         role: "Product Manager"
         email: "carol.kim@company.com"
         focal_points: ["analytics-dashboard"]
+        management_role: "direct-report"
+        manager: "[[me]]"
       - slug: "david-mueller"
         name: "David Mueller"
         aliases: ["David Mueller", "David"]
         role: "UX Researcher"
         email: "david.mueller@company.com"
         focal_points: []
+        management_role: "direct-report"
+        manager: "[[me]]"
     actor_slug: "analytics-dashboard"
     actor_name: "analytics-dashboard"
     actor_aliases: ["Analytics Dashboard", "Dashboard"]
@@ -364,6 +368,10 @@ presets:
     project_name: "Product Launch v2"
     project_aliases: ["Product Launch v2", "PLv2"]
     project_description: "Launch the redesigned product experience with improved onboarding and analytics"
+    discussion_slug: "2026-04-19-weekly-product-sync"
+    discussion_title: "Weekly Product Sync"
+    discussion_aliases: ["Weekly Sync"]
+    discussion_summary: "Weekly alignment between product team — roadmap status, blockers, and decisions"
 
   company-wiki:
     label: "Company wiki"
@@ -656,6 +664,45 @@ New domains can be added as the vault grows.
 - `<locale code>`: The `VAULT_LANGUAGE` value (e.g., `en-US`, `pt-BR`).
 - `<list of domain/* tags>`: Format as a markdown list: `- domain/backend`, `- domain/frontend`, etc.
 
+**For `product` preset only**, append the following section to the CLAUDE.md after "Quick Reference":
+
+```markdown
+
+## Management Workflows
+
+This vault uses management extensions for person and team entities.
+
+### People with management_role
+
+Persons with `management_role` in frontmatter have additional sections:
+- **Próximo 1:1** — checklist for the next 1:1. New items go BEFORE the `%%vazio%%` placeholder.
+- **Log** — chronological observations, newest on top (`### YYYY-MM-DD` headers).
+- **Temas em Acompanhamento** — recurring themes for follow-up.
+- **Desenvolvimento / PDI** — personal development plan.
+- **Competency scores** — Reforge Product Competency Model (24 fields in frontmatter, scale 0-5).
+
+### Teams with strategic sections
+
+Teams include:
+- **Temas Estratégicos** — active strategic themes (append-only).
+- **Decisões Importantes** — table with Date/Decision/Context.
+
+### Processing daily dumps
+
+When the user asks to "process" or "dump":
+1. Read the most recent unprocessed fleeting note (or the specified one)
+2. Classify each item and route to the correct entity (person 1:1, person log, team decision, project update, etc.)
+3. Group uncertainties into a single question
+4. Mark the fleeting as promoted after processing
+5. Show a summary with item count per destination
+
+### Quick notes
+
+The user may send inline notes without a formal daily:
+- "cobrar X do Fulano" → add to Fulano's Próximo 1:1
+- "Fulano: delivery 4, quality 3" → update competency frontmatter
+```
+
 **Write all CLAUDE.md content in the selected `VAULT_LANGUAGE`.**
 If the language is pt-BR, write sections headers and descriptions in Portuguese.
 If en-US, write in English. Etc.
@@ -808,6 +855,9 @@ The entities form a mini-graph where every wikilink has a matching backlink.
 5. Topic: `topics/<topic_slug>.md`
 6. Project: `projects/<project_slug>.md`
 
+**For presets with `discussion_slug`** (e.g., `product`): Create 7 entities (add discussion):
+7. Discussion: `discussions/<discussion_slug>.md`
+
 **For `personal` preset:** Create 4 entities (no team):
 1. Person: `people/<person_slug>.md`
 2. Actor: `actors/<actor_slug>.md`
@@ -907,6 +957,69 @@ Member of [[<team_name>]].
 
 - [[<project_slug>]] — <brief description>
 ```
+
+**For persons with `management_role` in the preset data**, add the following fields to frontmatter and sections to body:
+
+Frontmatter additions (after `jira`):
+```yaml
+management_role: "<person_management_role>"
+manager: "<person_manager>"
+product_sense: 0
+product_sense_self: 0
+analytical: 0
+analytical_self: 0
+execution: 0
+execution_self: 0
+strategic_thinking: 0
+strategic_thinking_self: 0
+fluency: 0
+fluency_self: 0
+discovery: 0
+discovery_self: 0
+growth: 0
+growth_self: 0
+go_to_market: 0
+go_to_market_self: 0
+quality: 0
+quality_self: 0
+delivery: 0
+delivery_self: 0
+user_insight: 0
+user_insight_self: 0
+data_intuition: 0
+data_intuition_self: 0
+```
+
+Body additions (after "## Projects" section):
+```markdown
+
+---
+
+## Próximo 1:1
+
+> [!todo] Pauta acumulada para o próximo 1:1
+> Itens adicionados automaticamente via daily dump, reuniões ou notas rápidas.
+
+- [ ] %%vazio — novos itens serão adicionados aqui%%
+
+---
+
+## Temas em Acompanhamento
+
+%%Temas ativos que precisam de follow-up recorrente%%
+
+---
+
+## Desenvolvimento / PDI
+
+---
+
+## Log
+
+%%Registro corrido de observações, feedbacks e contexto relevante. Mais recente no topo.%%
+```
+
+**For persons WITHOUT `management_role`** in the preset data: do not add these fields or sections (standard person entity).
 
 **For `personal` preset:** Omit the `team` field (set to `""`), omit the `Team` section, and write only 1 person entity.
 
@@ -1113,7 +1226,74 @@ with the real project description, motivation, and expected outcomes.
 
 **For `personal` preset:** Remove the `related_teams` field and the "Related Teams" section.
 
-#### 3.6.7 Verify Bidirectional Links
+#### 3.6.7 Create Discussion Entity
+
+> **Skip if the preset does NOT have a `discussion_slug` field.**
+
+Read the discussion template from `<base_dir>/../../templates/discussions/_template.md` as structural reference.
+
+Write `discussions/<discussion_slug>.md`:
+
+```markdown
+---
+type: discussion
+title: "<discussion_title>"
+aliases: <discussion_aliases as YAML array>
+date: <today YYYY-MM-DD>
+summary: "<discussion_summary>"
+conclusions:
+  - "Example conclusion from the meeting"
+action_items:
+  - description: "Follow up on roadmap item"
+    owner: "[[<person1_slug>]]"
+    status: "todo"
+    deadline: ""
+    routed_to: "[[<person1_slug>]]"
+related_topics: ["[[<topic_slug>]]"]
+related_actors: ["[[<actor_slug>]]"]
+related_people: ["[[<person1_slug>]]", "[[<person2_slug>]]"]
+related_projects: ["[[<project_slug>]]"]
+related_teams: ["[[<team_name>]]"]
+source: "manual"
+sources: []
+updated_at: <today YYYY-MM-DD>
+updated_by: "init@agent"
+tags: [type/discussion, domain/<first_domain>]
+---
+
+# <discussion_title>
+
+> <discussion_summary>
+
+## Context
+
+Example discussion created during vault setup to demonstrate the discussion entity type with structured action items and bidirectional links.
+
+## Participants
+
+| Person | Role |
+|---|---|
+| [[<person1_slug>]] | participant |
+| [[<person2_slug>]] | participant |
+
+## Conclusions
+
+- Example conclusion from the meeting
+
+## Action Items
+
+- [ ] Follow up on roadmap item — owner: [[<person1_slug>]]
+
+## Related Projects
+
+- [[<project_slug>]]
+
+## Related Topics
+
+- [[<topic_slug>]]
+```
+
+#### 3.6.8 Verify Bidirectional Links
 
 After creating all entities, verify the wikilink graph is fully bidirectional.
 
@@ -1129,6 +1309,17 @@ Project → Person 1: focal_points[] ✓ | Person 1 → Project: "Projects" ✓
 Project → Actor: related_actors[] ✓ | Actor → Project: "Related Projects" ✓
 Project → Team: related_teams[] ✓
 Project → Topic: related_topics[] ✓ | Topic → Project: "Related Projects" ✓
+```
+
+**Additional links for presets with `discussion_slug`:**
+
+```
+Discussion → Person 1: related_people[] ✓ | Person 1 → Discussion: "Active Topics" or body ✓
+Discussion → Person 2: related_people[] ✓
+Discussion → Actor: related_actors[] ✓
+Discussion → Project: related_projects[] ✓
+Discussion → Topic: related_topics[] ✓
+Discussion → Team: related_teams[] ✓
 ```
 
 Use Grep to spot-check that each entity file contains the expected wikilinks
