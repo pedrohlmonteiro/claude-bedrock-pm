@@ -190,13 +190,48 @@ For GitHub URLs (e.g.: `https://github.com/acme-corp/billing-api`):
 
 #### 1.3.2 Confluence
 
-For Confluence URLs:
+For Confluence URLs, use a **rich extraction** strategy that preserves images and diagrams:
+
+**Step 1 — Parse URL and extract page ID:**
+Extract the numeric page ID from the URL path (segment after `/pages/`).
+
+**Step 2 — Download as Word export (preserves images as references):**
+```bash
+curl -sL -o "$TEACH_TMP/<slug>.doc" \
+  -u "$CONFLUENCE_USER_EMAIL:$CONFLUENCE_API_TOKEN" \
+  "https://<domain>.atlassian.net/wiki/exportword?pageId=<pageId>"
+```
+
+If `CONFLUENCE_USER_EMAIL` and `CONFLUENCE_API_TOKEN` are not set, check `~/.claude/mcp.json` for
+Atlassian credentials (`ATLASSIAN_USER_EMAIL`, `ATLASSIAN_API_TOKEN`, `ATLASSIAN_SITE_URL`).
+
+**Step 3 — Parse MIME structure and extract image URLs:**
+The Word export is a MIME multipart/related file containing HTML. Parse it to find `<img>` tags
+with `src` pointing to `https://<domain>.atlassian.net/wiki/download/attachments/<pageId>/<filename>`.
+
+**Step 4 — Download images with redirect follow:**
+```bash
+curl -sL -o "$TEACH_TMP/images/<filename>" \
+  -u "$CONFLUENCE_USER_EMAIL:$CONFLUENCE_API_TOKEN" \
+  "https://<domain>.atlassian.net/wiki/download/attachments/<pageId>/<filename>"
+```
+**IMPORTANT:** Use `-L` (follow redirects) — Confluence returns 302 to `api.media.atlassian.com` with JWT token.
+
+**Step 5 — Convert HTML to markdown:**
+Extract the HTML from the MIME structure, replace image URLs with local paths (`images/<filename>`),
+and convert to markdown using docling or basic HTML-to-markdown conversion. Save as `$TEACH_TMP/<slug>.md`.
+
+**Step 6 — Copy images to vault:**
+When delegating to `/bedrock:preserve`, images should be saved to `<VAULT_PATH>/assets/<slug>/` so they
+can be referenced from the concept/entity via `![[assets/<slug>/<filename>]]`.
+
+**Fallback:** If Word export fails (non-200), fall back to the internal confluence-to-markdown skill:
 1. Read the internal skill at `<base_dir>/../confluence-to-markdown/SKILL.md`
 2. Follow its instructions to parse the URL, choose layer (MCP → API → browser), and extract content
 3. Save the returned Markdown content to `$TEACH_TMP/<slug>.md`
-   - `<slug>` is derived from the page title or URL path (kebab-case, lowercase)
+   - Note: fallback loses images — only text is extracted
 
-If all three layers (MCP, API, browser) are unavailable: warn the user with the guidance message from the fetcher module and abort this source type.
+If all methods are unavailable: warn the user and abort this source type.
 
 #### 1.3.3 Google Docs / Sheets
 
