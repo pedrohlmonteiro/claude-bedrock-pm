@@ -68,25 +68,29 @@ Stop execution. Do NOT attempt to call Granola tools if they are not available.
 
 ---
 
-## Phase 1 — Load Processed IDs
+## Phase 1 — Ensure Registry Exists
 
-Read the registry of already-processed meeting IDs:
+Make sure the processed-IDs registry file exists. **Do NOT load its contents
+into context.** Membership checks happen later via `grep` (Phase 2.2).
 
 ```bash
-cat <VAULT_PATH>/granola-processados.md 2>/dev/null
-```
-
-If the file does not exist, create it:
-
-```markdown
+REGISTRY="<VAULT_PATH>/granola-processados.md"
+if [ ! -f "$REGISTRY" ]; then
+  cat > "$REGISTRY" <<'HEAD'
 # Granola — Reuniões Processadas
 
 Lista de IDs de reuniões do Granola já processadas no vault.
 Um ID por linha. Não editar manualmente.
 
+HEAD
+fi
 ```
 
-Parse all UUIDs from the file into a set: `PROCESSED_IDS`.
+**Why grep instead of cat-into-context:** the file grows unbounded over time
+(potentially thousands of IDs after a year). Loading it into the LLM context
+inflates token usage with no benefit, and slicing the read with `head`/`tail`
+risks missing IDs that happen to land outside the slice (this caused a bug
+on 2026-05-05). `grep -qF` is O(file size) on disk but O(1) on context.
 
 ---
 
@@ -106,11 +110,26 @@ If `this_week` returns 0 meetings, also try:
 mcp__granola__list_meetings(time_range: "last_week")
 ```
 
-### 2.2 Filter unprocessed
+### 2.2 Filter unprocessed (membership via grep)
 
-From the listed meetings, remove any whose ID appears in `PROCESSED_IDS`.
+For each meeting ID returned by `list_meetings`, run a fixed-string grep
+against the registry. **Do not parse the file into the LLM context.** The
+shell does the membership check; only the result (processed/unprocessed) is
+exposed to the model.
 
-If no unprocessed meetings remain: respond "Nenhuma reunião nova para processar." and stop.
+```bash
+for id in <id1> <id2> ... <idN>; do
+  if grep -qF "$id" "$REGISTRY"; then
+    echo "skip $id"
+  else
+    echo "process $id"
+  fi
+done
+```
+
+Build the list `UNPROCESSED_IDS` from the IDs that printed `process`.
+
+If `UNPROCESSED_IDS` is empty: respond "Nenhuma reunião nova para processar." and stop.
 
 ### 2.3 Fetch details
 
@@ -242,15 +261,90 @@ Delegate to `/bedrock:preserve`.
 
 ---
 
-## Phase 6 — Register Processed IDs
+## Phase 5.5 — Offer Behavioral Analysis (analyze-call hook)
 
-After successfully processing each meeting, append its ID to the registry:
+After ingestion completes (Phase 5), identify which processed meetings qualify
+for behavioral analysis via `/bedrock:analyze-call`. The goal is coaching:
+extract patterns from 1:1s with managed people that the standard summary
+misses.
 
-```bash
-echo "<meeting_uuid>" >> <VAULT_PATH>/granola-processados.md
+### 5.5.1 Eligibility filter
+
+For each processed meeting, classify into one of three buckets:
+
+| Bucket | Criteria |
+|---|---|
+| **Auto-eligible** (default: include) | 1:1 with a person whose `management_role` is `direct-report` or `indirect-report` |
+| **Optional** (default: exclude, ask) | 1:1 with a person whose `management_role` is `peer` (e.g., Mac) |
+| **Skip** | Group meetings (Granola can't distinguish speakers in groups), 1:1s with external people, meetings with no transcript or summary too short (<2000 words estimated) |
+
+### 5.5.2 Present batch question
+
+If at least one meeting is auto-eligible OR optional, ask the user **once**:
+
+```
+Análise comportamental disponível para {N} reunião(ões):
+
+  Auto-elegíveis (1:1 com liderado):
+    - "{título}" → {pessoa} ({direct-report|indirect-report})
+    - ...
+
+  Opcionais (1:1 com peer):
+    - "{título}" → {pessoa} (peer)
+
+Rodar análise comportamental?
+  [s] Sim — todas auto-elegíveis (default)
+  [t] Sim — todas, incluindo peers
+  [n] Não — pular análise nesta rodada
+  [c] Customizar — escolher uma a uma
 ```
 
-One ID per line. Append only — never remove or rewrite the file.
+If zero meetings are auto-eligible AND zero are optional: skip Phase 5.5
+silently (don't ask anything, just proceed to Phase 6).
+
+### 5.5.3 Invoke analyze-call per selected meeting
+
+For each meeting selected by the user, invoke `/bedrock:analyze-call`:
+
+```
+/bedrock:analyze-call granola <meeting_uuid>
+```
+
+Each invocation runs in **interactive mode** (its own confirmation flow per
+person/log entry). Do NOT bypass `/bedrock:analyze-call`'s own guard-rails —
+the user still confirms each Log entry. The Phase 5.5 batch question is only
+about *whether to disparar* the analysis, not about silently persisting.
+
+After all selected analyses complete (or are declined), proceed to Phase 6.
+
+### 5.5.4 Hard rules
+
+1. **Never auto-disparar in batch without the user's explicit confirmation.**
+   Even with all-auto-eligible default selected, the question must be asked.
+2. **Group meetings are always skipped** — Granola "Me/Them" attribution
+   collapses in groups. The user can run `/bedrock:analyze-call gdoc <url>`
+   manually with a Meet transcript if needed.
+3. **Privacy continues:** behavioral analysis output goes to the person's Log
+   with `[análise]` prefix and `<!-- private: coaching -->` marker. The
+   `/bedrock:analyze-call` skill enforces this; granola only invokes.
+4. **Cost awareness:** if more than 5 meetings are eligible at once, warn the
+   user about token cost before proceeding ("Isso vai ler {N} transcripts
+   completos. Confirmar?").
+
+---
+
+## Phase 6 — Register Processed IDs
+
+After successfully processing each meeting, append its ID to the registry —
+**but only if not already there** (defensive against re-processing scenarios):
+
+```bash
+id="<meeting_uuid>"
+grep -qF "$id" "$REGISTRY" || echo "$id" >> "$REGISTRY"
+```
+
+One ID per line. Append only — never remove or rewrite the file. The
+`grep -qF || echo` pattern keeps the file deduplicated without rewriting it.
 
 ---
 
@@ -272,6 +366,10 @@ Distribuição:
 - N discussions criadas
 - N decisões → Teams
 - N updates → Projetos
+
+Análise comportamental:
+- N reunião(ões) elegível(is) → analisada(s) via /bedrock:analyze-call
+- N pulada(s) (grupo / peer / sem transcript)
 ```
 
 ---
@@ -285,3 +383,8 @@ Distribuição:
 5. **Graceful degradation** — if Granola MCP is unavailable, inform the user and stop. Never error out.
 6. **Language** — use the vault's configured language for all output and entity content.
 7. **Discussion slug** — derive from meeting title: lowercase, no accents, spaces→hyphens, max 50 chars.
+8. **Behavioral analysis hook (Phase 5.5)** — after ingestion, offer to run
+   `/bedrock:analyze-call` on eligible 1:1s (direct-report / indirect-report
+   default-on; peer default-off). Group meetings are always skipped
+   (Granola speaker attribution collapses). Always ask before dispatching;
+   never silently auto-disparar.
